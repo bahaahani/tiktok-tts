@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Text-to-Speech Converter</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+  }
+  h1 {
+    margin-top: 20px;
+  }
+  #content {
+    margin-top: 50px;
+  }
+  textarea {
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    resize: vertical;
+  }
+  button {
+    margin-top: 10px;
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+  }
+  select {
+    margin-top: 10px;
+    padding: 5px;
+  }
+</style>
+</head>
+<body>
+  <h1>Text-to-Speech Converter</h1>
+  <div id="content">
+    <textarea id="textToConvert" rows="4" placeholder="Enter text here..."></textarea>
+    <select id="voiceSelector">
+      <option value="">Select Voice</option>
+    </select>
+    <button id="convertButton">Convert to Speech</button>
+    <button id="stopButton" disabled>Stop</button>
+    <a id="downloadLink" style="display: none;">Download Audio</a>
+  </div>
+  <audio id="audioPlayer" controls>
+    Your browser does not support the audio element.
+  </audio>
+  <script>
+    const convertButton = document.getElementById('convertButton');
+    const stopButton = document.getElementById('stopButton');
+    const textToConvert = document.getElementById('textToConvert');
+    const audioPlayer = document.getElementById('audioPlayer');
+    const downloadLink = document.getElementById('downloadLink');
+    const voiceSelector = document.getElementById('voiceSelector');
+
+    let synthesis = window.speechSynthesis;
+    let utterance = new SpeechSynthesisUtterance();
+
+    function populateVoiceList() {
+      const voices = synthesis.getVoices();
+      voiceSelector.innerHTML = '';
+      voices.forEach((voice, index) => {
+        const option = document.createElement('option');
+        option.value = index;
+        option.textContent = `${voice.name} (${voice.lang})`;
+        voiceSelector.appendChild(option);
+      });
+    }
+
+    populateVoiceList();
+    if (speechSynthesis.onvoiceschanged !== undefined) {
+      speechSynthesis.onvoiceschanged = populateVoiceList;
+    }
+
+    convertButton.addEventListener('click', () => {
+      const text = textToConvert.value;
+      const selectedVoiceIndex = voiceSelector.value;
+      if (text.trim() !== '' && selectedVoiceIndex !== '') {
+        utterance.text = text;
+        utterance.voice = synthesis.getVoices()[selectedVoiceIndex];
+        synthesis.speak(utterance);
+        convertButton.disabled = true;
+        stopButton.disabled = false;
+      }
+    });
+
+    stopButton.addEventListener('click', () => {
+      synthesis.cancel();
+      convertButton.disabled = false;
+      stopButton.disabled = true;
+    });
+
+    utterance.onend = () => {
+      convertButton.disabled = false;
+      stopButton.disabled = true;
+      createAudioFile(utterance.text);
+    };
+
+    function createAudioFile(text) {
+      const audioBlob = new Blob([text], { type: 'audio/mpeg' });
+      const audioUrl = URL.createObjectURL(audioBlob);
+      downloadLink.href = audioUrl;
+      downloadLink.download = 'converted_audio.mp3';
+      downloadLink.style.display = 'block';
+    }
+  </script>
+</body>
+</html>
